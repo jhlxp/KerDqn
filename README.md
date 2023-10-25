@@ -15,6 +15,7 @@ Deep Reinforcement Learning Plugin for Kernel Congestion
 
 ## Usage
 
+Linux kernel 5.4.233
 Insert kernel modules:
 
 ```shell
