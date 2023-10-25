@@ -26,6 +26,7 @@ sudo insmod tcp_kerdqn.ko
 Start agent, default port 8023:
 
 ```shell
+cd online
 python ./agent.py --port 8023 --protocol 23
 ```
 
