@@ -18,7 +18,7 @@ Deep Reinforcement Learning Plugin for Kernel Congestion
 Insert kernel modules:
 
 ```shell
-cd source
+cd src
 make
 sudo insmod tcp_kerdqn.ko
 ```
