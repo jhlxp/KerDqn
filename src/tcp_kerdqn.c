@@ -32,12 +32,12 @@ struct kerdqn_bictcp {
 	u32 start_flag:1,
         recovery_flag:1,
         rtt_probe:1,
-		init_cwnd_flag:1,
+	init_cwnd_flag:1,
         mode:3,
         times:3,
-		start_times:3,
+	start_times:3,
         recovery_count:3,
-		keep_times:8,
+	keep_times:8,
         unused:8;
 	u32 min_rtt_us; 
 	u32 min_rtt_stamp;
@@ -46,10 +46,10 @@ struct kerdqn_bictcp {
 	u32 last_update_stamp;
 	u32 last_slow_start_stamp;
 	u32 train_count;
-    u32 bw;
+    	u32 bw;
 	u32 bw_last;
-    u32 rtt;
-    u32 rtt_last;
+    	u32 rtt;
+	u32 rtt_last;
 	u32 probe_rtt_list[3];
 	u32 history_rtt[3];
 	u32 times_stamp;
@@ -76,10 +76,10 @@ static void kerdqn_tcp_init(struct sock *sk)
 	qc -> last_slow_start_stamp = tcp_jiffies32;
 	qc -> train_count = 0;
 	qc -> before_probe_cwnd = 10;
-    qc -> bw = 0;
-    qc -> rtt = 0;
-    qc -> bw_last = 0;
-    qc -> rtt_last = 0;
+    	qc -> bw = 0;
+    	qc -> rtt = 0;
+    	qc -> bw_last = 0;
+    	qc -> rtt_last = 0;
 	qc -> recovery_count = 0;
 	qc -> recovery_flag = 0;
 	qc -> probe_rtt_list[0] = 0xffffffff;
@@ -107,41 +107,41 @@ static void kerdqn_get_minrtt_maxbw(struct sock *sk, const struct rate_sample *r
 	bool filter_expired_minrtt;
 	bool filter_expired_maxthr;
 	u64 bw;
-
+	
 	if( rs -> rtt_us < 0 ){
 		return ;
 	}
-
+	
 	filter_expired_minrtt = after(tcp_jiffies32, qc -> min_rtt_stamp + kerdqn_min_rtt_win_sec * HZ);
 	filter_expired_maxthr = after(tcp_jiffies32, qc -> max_bw_stamp + kerdqn_max_thr_win_sec * HZ);
-
+	
 	if( rs->interval_us < 0 ){
 		return ;
 	}
-
-    bw = div64_long((u64)rs->delivered * (1 << 24), rs->interval_us);
-
-    qc -> bw = (u32)bw;
-    qc -> rtt = (u32)rs -> rtt_us;
-
+	
+	bw = div64_long((u64)rs->delivered * (1 << 24), rs->interval_us);
+	
+	qc -> bw = (u32)bw;
+	qc -> rtt = (u32)rs -> rtt_us;
+	
 	if (qc -> start_flag == 0 && qc -> rtt > 0){
 		qc -> history_rtt[0] = qc -> rtt;
 		qc -> history_rtt[1] = qc -> rtt;
 		qc -> history_rtt[2] = qc -> rtt;
 		qc -> start_flag = 1;
 	}
-
+	
 	qc -> history_rtt[0] = qc -> history_rtt[1];
 	qc -> history_rtt[1] = qc -> history_rtt[2];
 	qc -> history_rtt[2] = qc -> rtt;
-
+	
 	if (rs -> rtt_us > 0 &&
 	    (rs -> rtt_us < qc -> min_rtt_us ||
 	     (filter_expired_minrtt && !rs->is_ack_delayed))) {
 		qc -> min_rtt_us = rs->rtt_us;		
 		qc -> min_rtt_stamp = tcp_jiffies32;
 	}
-
+	
 	if (rs -> rtt_us > 0 &&
 	    (qc -> max_bw_bps < bw ||
 	     (filter_expired_maxthr && !rs->is_ack_delayed))) {
@@ -152,62 +152,62 @@ static void kerdqn_get_minrtt_maxbw(struct sock *sk, const struct rate_sample *r
 
 static int kerdqn_send_usrmsg(char *pbuf, uint16_t len)
 {
-    struct sk_buff *nl_skb;
-    struct nlmsghdr *nlh;  
-
-    int ret;
-
-    nl_skb = nlmsg_new(len, GFP_ATOMIC);
-    if(!nl_skb)
-    {
-        printk("netlink alloc failure\n");
-        return -1;
-    }
-
-    nlh = nlmsg_put(nl_skb, 0, 0, kerdqn_NETLINK_TEST, len, 0);
-
+	struct sk_buff *nl_skb;
+	struct nlmsghdr *nlh;  
 	
-    if(nlh == NULL)
-    {
-        printk("nlmsg_put failaure \n");
-        nlmsg_free(nl_skb);  
-        return -1;
-    }
-
-    memcpy(nlmsg_data(nlh), pbuf, len);
-    ret = netlink_unicast(kerdqn_nlsk, nl_skb, kerdqn_USER_PORT, MSG_DONTWAIT);
-    
-    return ret;
+	int ret;
+	
+	nl_skb = nlmsg_new(len, GFP_ATOMIC);
+	if(!nl_skb)
+	{
+	printk("netlink alloc failure\n");
+	return -1;
+	}
+	
+	nlh = nlmsg_put(nl_skb, 0, 0, kerdqn_NETLINK_TEST, len, 0);
+	
+	
+	if(nlh == NULL)
+	{
+	printk("nlmsg_put failaure \n");
+	nlmsg_free(nl_skb);  
+	return -1;
+	}
+	
+	memcpy(nlmsg_data(nlh), pbuf, len);
+	ret = netlink_unicast(kerdqn_nlsk, nl_skb, kerdqn_USER_PORT, MSG_DONTWAIT);
+	
+	return ret;
 }
 
 static void kerdqn_send_bw_rtt(u32 mode, u32 utility, u32 bw,u32 rtt, u32 max_bw, u32 min_rtt, u32 cwnd, u32 inflight, u32 losses, u32 loss_ratio){
-    char *kmsg;
-    snprintf(kerdqn_netlink_kmsg, sizeof(kerdqn_netlink_kmsg), "(%u;%u;%u;%u;%u;%u;%u;%u;%u;%u;%u;)", mode,utility,bw,rtt,max_bw,min_rtt,cwnd,inflight,losses,loss_ratio);
-    kmsg = kerdqn_netlink_kmsg;
-    kerdqn_send_usrmsg(kmsg, strlen(kmsg));
+	char *kmsg;
+	snprintf(kerdqn_netlink_kmsg, sizeof(kerdqn_netlink_kmsg), "(%u;%u;%u;%u;%u;%u;%u;%u;%u;%u;%u;)", mode,utility,bw,rtt,max_bw,min_rtt,cwnd,inflight,losses,loss_ratio);
+	kmsg = kerdqn_netlink_kmsg;
+	kerdqn_send_usrmsg(kmsg, strlen(kmsg));
 }
 
 static void kerdqn_netlink_rcv_msg(struct sk_buff *skb)
 {
-    struct nlmsghdr *nlh = NULL;
-    char *umsg = NULL;
-    u32 action_receive = 0;
-
-    if(skb->len >= nlmsg_total_size(0))
-    {
-
-        nlh = nlmsg_hdr(skb);  
-
+	struct nlmsghdr *nlh = NULL;
+	char *umsg = NULL;
+	u32 action_receive = 0;
+	
+	if(skb->len >= nlmsg_total_size(0))
+	{
+	
+	nlh = nlmsg_hdr(skb);  
+	
 		// printk("nlh->nlmsg_pid:%u,nlmsg_len(nlh):%u",nlh->nlmsg_pid, nlmsg_len(nlh));
-
+	
 		if (nlmsg_len(nlh) == sizeof(u32))  
 		{
 			u32 *data_ptr = (u32 *)NLMSG_DATA(nlh);  
 			action_receive = *data_ptr;              
 			printk("Received action: %u", action_receive);
-
+	
 			kerdqn_action = action_receive;
-
+	
 			switch(kerdqn_action)
 			{
 			case 0 :
@@ -264,9 +264,9 @@ static void kerdqn_netlink_rcv_msg(struct sk_buff *skb)
 			default:
 				kerdqn_cwnd = max(10, kerdqn_cwnd );
 			}
-
-        }
-    }
+	
+		}
+	}
 }
 
 
